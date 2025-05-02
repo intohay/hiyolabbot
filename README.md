@@ -38,14 +38,12 @@ uv pip install
 
 ### 3. 環境変数の設定
 
-実行前に以下の2つの環境変数を設定してください：
+`.env` ファイルに以下の2つの環境変数を記述してください：
 
-```bash
-export DISCORD_TOKEN="あなたのDiscord Botトークン"
-export CHANNEL_ID="通知を送りたいDiscordチャンネルのID"
 ```
-
-※ `.env` ファイルに記述する場合は別途 dotenv の読み込み処理を追加してください。
+DISCORD_TOKEN="あなたのDiscord Botトークン"
+CHANNEL_ID="通知を送りたいDiscordチャンネルのID"
+```
 
 ### 4. Botの起動
 
