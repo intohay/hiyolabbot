@@ -8,7 +8,8 @@ dependencies = [
     "discord.py",
     "requests",
     "beautifulsoup4",
-    "lxml"
+    "lxml",
+    "python-dotenv>=1.1.0",
 ]
 
 [build-system]
