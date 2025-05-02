@@ -38,17 +38,18 @@ uv pip install --requirements pyproject.toml
 
 ### 3. 環境変数の設定
 
-`.env` ファイルに以下の2つの環境変数を記述してください：
-
-```
-DISCORD_TOKEN="あなたのDiscord Botトークン"
-CHANNEL_ID="通知を送りたいDiscordチャンネルのID"
-```
-
-### 4. Botの起動
+実行前に環境変数を設定してください：
 
 ```bash
-python discord_bot.py
+cp .env.example .env
+```
+
+その後、`.env` ファイルに値を入力してください。
+
+### 4. Bot の起動
+
+```bash
+python main.py
 ```
 
 ---
@@ -60,7 +61,7 @@ python discord_bot.py
 ├── src
 │   └── hiyolabbot
 │       ├── __init__.py          # パッケージ初期化ファイル
-│       ├── discord_bot.py       # メインBot（エントリポイント）
+│       ├── main.py       # メインBot（エントリポイント）
 │       └── watcher.py           # スナップショット取得・差分検出ロジック
 └── pyproject.toml               # 依存パッケージ管理ファイル
 ```

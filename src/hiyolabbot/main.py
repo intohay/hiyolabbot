@@ -3,13 +3,21 @@ import os
 import asyncio
 from datetime import datetime, timezone
 from watcher import make_snapshot, load_previous, diff, save_snapshot, URL, fetch_html
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
+from tweepy import Client
 
-# load_dotenv()
+load_dotenv()
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 
+x_client = Client(
+    bearer_token=os.environ.get("X_BEARER_TOKEN"),
+    consumer_key=os.environ.get("X_API_KEY"),
+    consumer_secret=os.environ.get("X_API_KEY_SECRET"),
+    access_token=os.environ.get("X_ACCESS_TOKEN"),
+    access_token_secret=os.environ.get("X_ACCESS_TOKEN_SECRET"),
+)
 
 CHECK_INTERVAL = 60  # 1 分ごと
 
@@ -25,7 +33,6 @@ async def watch_loop() -> None:
         prev = load_previous()
         changes = diff(prev, curr)
         if changes and changes != ["初回スキャン（スナップショット作成）"]:
-            timestamp = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
             change_descriptions = "\n".join(f"• {c}" for c in changes)
             msg = (
                 "@everyone\n"
@@ -33,6 +40,21 @@ async def watch_loop() -> None:
                 f"以下のセクションに変更がありました:\n{change_descriptions}"
             )
             await channel.send(msg)
+            
+            # https://hamagishihiyori.fanpla.jp/?t=202505030444 のように timestamp を含む URL を使用する
+            # 理由: 
+            #   こうすることで同じ内容のツイートではないと判定されて POST に失敗することがなくなる。
+            #   また、t=xxx を含めても遷移先は https://hamagishihiyori.fanpla.jp/ にリダイレクトされる。
+            #   その結果、ツイートのプレビューは https://hamagishihiyori.fanpla.jp/ のものになり、きれいに表示される。
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+            x_msg = f"ひよラボが更新されました！\n\n以下のセクションが更新されました:\n{change_descriptions}\n\n{URL}/?t={timestamp}"
+            
+            try:
+                x_client.create_tweet(text=x_msg)
+            except Exception as e:
+                # 処理に失敗してもループを継続させる
+                await channel.send(f"X に投稿に失敗しました: {e}\n投稿したかった文面:\n{x_msg}")
+        
         save_snapshot(curr)
         await asyncio.sleep(CHECK_INTERVAL)
 
