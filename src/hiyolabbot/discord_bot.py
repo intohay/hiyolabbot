@@ -28,7 +28,7 @@ async def watch_loop() -> None:
             timestamp = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
             change_descriptions = "\n".join(f"• {c}" for c in changes)
             msg = (
-                f"[{timestamp}] [ひよラボ]({URL})が更新されました！\n"
+                f"[ひよラボ]({URL})が更新されました！\n"
                 f"以下のセクションに変更がありました:\n{change_descriptions}"
             )
             await channel.send(msg)
