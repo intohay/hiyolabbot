@@ -3,9 +3,9 @@ import os
 import asyncio
 from datetime import datetime, timezone
 from watcher import make_snapshot, load_previous, diff, save_snapshot, URL, fetch_html
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)

@@ -38,14 +38,15 @@ uv pip install --requirements pyproject.toml
 
 ### 3. 環境変数の設定
 
-`.env` ファイルに以下の2つの環境変数を記述してください：
+実行前に環境変数を設定してください：
 
-```
-DISCORD_TOKEN="あなたのDiscord Botトークン"
-CHANNEL_ID="通知を送りたいDiscordチャンネルのID"
+```bash
+cp .env.example .env
 ```
 
-### 4. Botの起動
+その後、`.env` ファイルに値を入力してください。
+
+### 4. Bot の起動
 
 ```bash
 python discord_bot.py
