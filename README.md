@@ -1,6 +1,6 @@
 # Hiyori Watch Bot
 
-濱岸ひよりのファンクラブページ（https://hamagishihiyori.fanpla.jp/）を定期的に監視し、更新があればDiscordチャンネルに通知するBotです。
+濱岸ひよりのファンクラブページ（ https://hamagishihiyori.fanpla.jp/ ）を定期的に監視し、更新があればDiscordチャンネルに通知するBotです。
 
 ## 概要
 
