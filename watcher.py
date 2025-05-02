@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+# hiyori_watch_bot.py
+"""
+Discord bot that watches https://hamagishihiyori.fanpla.jp/ for changes and
+posts a message when tracked sections are updated.
+
+Start with:
+  export DISCORD_TOKEN="your‑bot‑token"
+  export DISCORD_CHANNEL_ID="123456789012345678"
+  python hiyori_watch_bot.py
+"""
+
+from __future__ import annotations
+
+import asyncio
+import hashlib
+import json
+import os
+import pathlib
+from datetime import datetime, timezone
+
+import bs4  # beautifulsoup4
+import discord
+import requests
+
+# ---------- site‑specific settings -----------------------------------------
+URL = "https://hamagishihiyori.fanpla.jp/"
+
+TRACK_SELECTORS = {
+    # CSS selector : human‑readable label    （必要に応じて編集）
+    "section#news": "INFORMATION",
+    "section#schedule": "SCHEDULE",
+    "section#blog": "BLOG",
+    "section#movie": "MOVIE",
+    "section#photo": "PHOTO",
+    "section#qa": "Q&A"
+}
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+}
+TIMEOUT = 15  # seconds
+CHECK_INTERVAL = 300  # 5 分ごと
+SNAPSHOT_FILE = pathlib.Path("snapshot.json")
+# ---------------------------------------------------------------------------
+
+
+def fetch_html() -> bs4.BeautifulSoup:
+    """Download the page and return parsed soup."""
+    resp = requests.get(URL, headers=HEADERS, timeout=TIMEOUT)
+    resp.raise_for_status()
+    return bs4.BeautifulSoup(resp.text, "lxml")
+
+
+def hash_text(node: bs4.Tag | None) -> str | None:
+    """Return SHA‑256 of node's normalised text, or None if node missing."""
+    if node is None:
+        return None
+    norm = " ".join(node.get_text(" ", strip=True).split())
+    return hashlib.sha256(norm.encode()).hexdigest()
+
+
+def make_snapshot(soup: bs4.BeautifulSoup) -> dict[str, str | None]:
+    return {
+        label: hash_text(soup.select_one(selector))
+        for selector, label in TRACK_SELECTORS.items()
+    }
+
+
+def load_previous() -> dict[str, str | None] | None:
+    if SNAPSHOT_FILE.exists():
+        return json.loads(SNAPSHOT_FILE.read_text(encoding="utf‑8"))
+    return None
+
+
+def save_snapshot(snap: dict[str, str | None]) -> None:
+    SNAPSHOT_FILE.write_text(json.dumps(snap, ensure_ascii=False, indent=2))
+
+
+def diff(prev: dict[str, str | None] | None, curr: dict[str, str | None]) -> list[str]:
+    if prev is None:
+        return ["初回スキャン（スナップショット作成）"]
+
+    changes: list[str] = []
+    for label, new_hash in curr.items():
+        old_hash = prev.get(label)
+        if old_hash != new_hash:
+            if old_hash is None:
+                changes.append(f"新規セクション追加: {label}")
+            elif new_hash is None:
+                changes.append(f"セクション削除: {label}")
+            else:
+                changes.append(f"更新検知: {label}")
+    return changes
+
+
