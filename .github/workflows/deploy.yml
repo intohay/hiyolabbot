@@ -22,9 +22,8 @@ jobs:
         script: |
           cd /home/ubuntu/hiyolabbot
           git pull origin main
-          if ! command -v uv &> /dev/null; then
-            curl -Ls https://astral.sh/uv/install.sh | sh
-          fi
           source .venv/bin/activate
-          uv pip install --requirements pyproject.toml
+          curl -Ls https://astral.sh/uv/install.sh | sh
+          mv ~/.cargo/bin/uv .venv/bin/
+          .venv/bin/uv pip install --requirements pyproject.toml
           sudo systemctl restart hiyolabbot.service
