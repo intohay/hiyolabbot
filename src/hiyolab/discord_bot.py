@@ -2,11 +2,16 @@ import discord
 import os
 import asyncio
 from datetime import datetime, timezone
-from watcher import make_snapshot, load_previous, diff, save_snapshot
+from watcher import make_snapshot, load_previous, diff, save_snapshot, URL, fetch_html
+from dotenv import load_dotenv
+
+load_dotenv()
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 
+
+CHECK_INTERVAL = 60  # 1 分ごと
 
 async def watch_loop() -> None:
     await client.wait_until_ready()
@@ -21,7 +26,11 @@ async def watch_loop() -> None:
         changes = diff(prev, curr)
         if changes and changes != ["初回スキャン（スナップショット作成）"]:
             timestamp = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
-            msg = f"[{timestamp}] {URL}\n" + "\n".join(f"• {c}" for c in changes)
+            change_descriptions = "\n".join(f"• {c}" for c in changes)
+            msg = (
+                f"[{timestamp}] [ひよラボ]({URL})が更新されました！\n"
+                f"以下のセクションに変更がありました:\n{change_descriptions}"
+            )
             await channel.send(msg)
         save_snapshot(curr)
         await asyncio.sleep(CHECK_INTERVAL)
