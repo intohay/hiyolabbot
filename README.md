@@ -31,7 +31,7 @@ pip install uv
 ### 2. 依存パッケージのインストール
 
 ```bash
-uv pip install
+uv pip install --requirements pyproject.toml
 ```
 
 このコマンドはカレントディレクトリの `pyproject.toml` を読み取り、必要な依存を自動で解決・インストールします。
