@@ -15,7 +15,7 @@ CHECK_INTERVAL = 60  # 1 分ごと
 
 async def watch_loop() -> None:
     await client.wait_until_ready()
-    channel_id = int(os.environ["CHANNEL_ID"])
+    channel_id = int(os.environ["DISCORD_CHANNEL_ID"])
     channel = client.get_channel(channel_id)
     if channel is None:
         raise RuntimeError(f"Channel {channel_id} not found or bot lacks access.")
