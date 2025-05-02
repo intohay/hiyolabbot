@@ -30,13 +30,13 @@ jobs:
         username: ${{ secrets.SAKURA_SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          export DISCORD_TOKEN=${{ env.DISCORD_TOKEN }}
-          export DISCORD_CHANNEL_ID=${{ env.DISCORD_CHANNEL_ID }}
-          export X_API_KEY=${{ env.X_API_KEY }}
-          export X_API_KEY_SECRET=${{ env.X_API_KEY_SECRET }}
-          export X_BEARER_TOKEN=${{ env.X_BEARER_TOKEN }}
-          export X_ACCESS_TOKEN=${{ env.X_ACCESS_TOKEN }}
-          export X_ACCESS_TOKEN_SECRET=${{ env.X_ACCESS_TOKEN_SECRET }}
+          export DISCORD_TOKEN=$DISCORD_TOKEN
+          export DISCORD_CHANNEL_ID=$DISCORD_CHANNEL_ID
+          export X_API_KEY=$X_API_KEY
+          export X_API_KEY_SECRET=$X_API_KEY_SECRET
+          export X_BEARER_TOKEN=$X_BEARER_TOKEN
+          export X_ACCESS_TOKEN=$X_ACCESS_TOKEN
+          export X_ACCESS_TOKEN_SECRET=$X_ACCESS_TOKEN_SECRET
           cd /home/ubuntu/hiyolabbot
           git pull origin main
           if ! command -v uv &> /dev/null; then
