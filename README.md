@@ -49,7 +49,7 @@ cp .env.example .env
 ### 4. Bot の起動
 
 ```bash
-python discord_bot.py
+python main.py
 ```
 
 ---
@@ -61,7 +61,7 @@ python discord_bot.py
 ├── src
 │   └── hiyolabbot
 │       ├── __init__.py          # パッケージ初期化ファイル
-│       ├── discord_bot.py       # メインBot（エントリポイント）
+│       ├── main.py       # メインBot（エントリポイント）
 │       └── watcher.py           # スナップショット取得・差分検出ロジック
 └── pyproject.toml               # 依存パッケージ管理ファイル
 ```
