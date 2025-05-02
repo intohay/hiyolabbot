@@ -84,12 +84,8 @@ def diff(prev: dict[str, str | None] | None, curr: dict[str, str | None]) -> lis
     for label, new_hash in curr.items():
         old_hash = prev.get(label)
         if old_hash != new_hash:
-            if old_hash is None:
-                changes.append(f"新規セクション追加: {label}")
-            elif new_hash is None:
-                changes.append(f"セクション削除: {label}")
-            else:
-                changes.append(f"更新検知: {label}")
+            # セクションの追加や削除は想定していないので、単純に更新として扱う
+            changes.append(f"- {label}")
     return changes
 
 
