@@ -25,5 +25,6 @@ jobs:
           if ! command -v uv &> /dev/null; then
             curl -Ls https://astral.sh/uv/install.sh | sh
           fi
+          source .venv/bin/activate
           uv pip install --requirements pyproject.toml
           sudo systemctl restart hiyolabbot.service
