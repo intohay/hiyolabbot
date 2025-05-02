@@ -59,10 +59,12 @@ python discord_bot.py
 
 ```
 .
-├── discord_bot.py         # メインBot（エントリポイント）
-├── watcher.py            # スナップショット取得・差分検出ロジック
-├── snapshot.json         # 最新スナップショット（初回実行で生成される）
-└── pyproject.toml        # 依存パッケージ管理ファイル
+├── src
+│   └── hiyolabbot
+│       ├── __init__.py          # パッケージ初期化ファイル
+│       ├── discord_bot.py       # メインBot（エントリポイント）
+│       └── watcher.py           # スナップショット取得・差分検出ロジック
+└── pyproject.toml               # 依存パッケージ管理ファイル
 ```
 
 ---
@@ -76,4 +78,4 @@ python discord_bot.py
 
 ## ライセンス
 
-MIT License（予定）
+このプロジェクトはMITライセンスの下でライセンスされています。詳細は`LICENSE`ファイルを参照してください。
