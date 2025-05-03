@@ -49,8 +49,17 @@ async def watch_loop() -> None:
             #   その結果、ツイートのプレビューは https://hamagishihiyori.fanpla.jp/ のものになり、きれいに表示される。
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
             x_link = urljoin(URL, f"?t={timestamp}")
-            x_msg = f"ひよラボが更新されました！\n\n以下のセクションが更新されました:\n{change_descriptions}\n\n{x_link}"
-            
+            x_msg = (
+                "／\n"
+                "📢 ひよラボが更新されました！\n"
+                "＼\n"
+                "以下のセクションが更新されました:\n"
+                f"{change_descriptions}\n\n"
+                "#HiyoLab\n"
+                "#ひよラボ\n"
+                "#濱岸ひより\n"
+                f"{x_link}"
+            )
             try:
                 x_client.create_tweet(text=x_msg)
             except Exception as e:
