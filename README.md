@@ -1,13 +1,13 @@
 # HiyoLab Bot
 
-濱岸ひよりのファンクラブページ（ https://hamagishihiyori.fanpla.jp/ ）を定期的に監視し、更新があればDiscordチャンネルに通知するBotです。
+濱岸ひよりのファンクラブページ（ https://hamagishihiyori.fanpla.jp/ ）を定期的に監視し、更新があればDiscordチャンネルとX(Twitter)に通知するBotです。
 
 ## 概要
 
-- FCページの主要セクション（INFORMATION, SCHEDULE, BLOG, MOVIE, PHOTO, Q&A）を対象に監視
+- FCページの主要セクション（INFORMATION, BLOG, MOVIE, PHOTO, Q&A）を対象に監視
 - セクションごとのHTMLテキストのハッシュを比較し、差分を検出
 - 変更があった場合、Discordの指定チャンネルにメッセージを投稿
-- Python標準の非同期IO + `discord.py` による非同期Bot実装
+- 変更があった場合、X(Twitter)にメッセージを投稿
 
 ## 前提条件
 
@@ -70,7 +70,7 @@ python main.py
 
 ## 補足
 
-* Botがチャンネルにメッセージを投稿するためには、対象のサーバーに正しく参加しており、メッセージ送信権限がある必要があります。
+* BotがDiscordチャンネルにメッセージを投稿するためには、対象のサーバーに正しく参加しており、メッセージ送信権限がある必要があります。
 * `TRACK_SELECTORS` は CSS セレクタで指定されているので、FCページ側のDOM構造が変更された場合には更新が必要になる可能性があります。
 
 ---
