@@ -21,7 +21,6 @@ URL = "https://hamagishihiyori.fanpla.jp/"
 TRACK_SELECTORS = {
     # CSS selector : human‑readable label    （必要に応じて編集）
     "section#news": "INFORMATION",
-    "section#schedule": "SCHEDULE",
     "section#blog": "BLOG",
     "section#movie": "MOVIE",
     "section#photo": "PHOTO",
