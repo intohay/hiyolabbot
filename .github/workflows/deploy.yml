@@ -21,14 +21,14 @@ jobs:
     - name: 依存関係をインストール
       run: |
         python -m venv .venv
-         .venv/bin/activate
-        pip install --upgrade pip setuptools wheel
-        pip install .
+        source .venv/bin/activate
+        .venv/bin/pip install --upgrade pip setuptools wheel
+        .venv/bin/pip install .
 
     - name: テストを実行
       run: |
-        . .venv/bin/activate
-        PYTHONPATH=src python -m unittest discover tests
+        source .venv/bin/activate
+        PYTHONPATH=src .venv/bin/python -m unittest discover tests
 
     - name: デプロイ
       if: success() 
