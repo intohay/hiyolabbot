@@ -13,7 +13,25 @@ jobs:
     - name: チェックアウトリポジトリ
       uses: actions/checkout@v2
 
-    - name: SSHでサーバーに接続してデプロイ
+    - name: セットアップPython
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.12'
+
+    - name: 依存関係をインストール
+      run: |
+        python -m venv .venv
+         .venv/bin/activate
+        pip install --upgrade pip setuptools wheel
+        pip install .
+
+    - name: テストを実行
+      run: |
+        . .venv/bin/activate
+        python -m unittest discover src/hiyolabbot/tests
+
+    - name: デプロイ
+      if: success() 
       uses: appleboy/ssh-action@v0.1.5
       with:
         host: ${{ secrets.SAKURA_SERVER_HOST }}
