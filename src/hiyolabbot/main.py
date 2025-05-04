@@ -7,6 +7,7 @@ import discord
 from dotenv import load_dotenv
 from tweepy import Client
 from watcher import URL, diff, fetch_html, load_previous, make_snapshot, save_snapshot
+import requests
 
 load_dotenv()
 
@@ -31,7 +32,11 @@ async def watch_loop() -> None:
         raise RuntimeError(f"Channel {channel_id} not found or bot lacks access.")
 
     while not client.is_closed():
-        curr = make_snapshot(fetch_html())
+        try:
+            curr = make_snapshot(fetch_html())
+        except requests.exceptions.RequestException as e:
+            await channel.send(f"HTMLの取得に失敗しました: {e}")
+            continue  # ループを継続
         prev = load_previous()
         changes = diff(prev, curr)
         if changes and changes != ["初回スキャン（スナップショット作成）"]:
