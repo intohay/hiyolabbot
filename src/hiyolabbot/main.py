@@ -1,10 +1,11 @@
 import discord
 import os
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime
 from watcher import make_snapshot, load_previous, diff, save_snapshot, URL, fetch_html
 from dotenv import load_dotenv
 from tweepy import Client
+from urllib.parse import urljoin
 
 load_dotenv()
 
@@ -46,9 +47,19 @@ async def watch_loop() -> None:
             #   こうすることで同じ内容のツイートではないと判定されて POST に失敗することがなくなる。
             #   また、t=xxx を含めても遷移先は https://hamagishihiyori.fanpla.jp/ にリダイレクトされる。
             #   その結果、ツイートのプレビューは https://hamagishihiyori.fanpla.jp/ のものになり、きれいに表示される。
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
-            x_msg = f"ひよラボが更新されました！\n\n以下のセクションが更新されました:\n{change_descriptions}\n\n{URL}/?t={timestamp}"
-            
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            x_link = urljoin(URL, f"?t={timestamp}")
+            x_msg = (
+                "／\n"
+                "📢 ひよラボが更新されました！\n"
+                "＼\n"
+                "以下のセクションが更新されました:\n"
+                f"{change_descriptions}\n\n"
+                "#HiyoLab\n"
+                "#ひよラボ\n"
+                "#濱岸ひより\n"
+                f"{x_link}"
+            )
             try:
                 x_client.create_tweet(text=x_msg)
             except Exception as e:
