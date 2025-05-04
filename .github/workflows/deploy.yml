@@ -28,7 +28,7 @@ jobs:
     - name: テストを実行
       run: |
         . .venv/bin/activate
-        python -m unittest discover src/hiyolabbot/tests
+        python -m unittest discover tests
 
     - name: デプロイ
       if: success() 
