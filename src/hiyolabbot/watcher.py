@@ -1,18 +1,12 @@
-from __future__ import annotations
-
-import asyncio
 import hashlib
 import json
-import os
-import re
+import logging
 import pathlib
-from datetime import datetime, timezone
+import re
 
 import bs4  # beautifulsoup4
-import discord
 import requests
 
-import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # ---------- site‑specific settings -----------------------------------------

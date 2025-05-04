@@ -1,11 +1,12 @@
-import discord
-import os
 import asyncio
+import os
 from datetime import datetime
-from watcher import make_snapshot, load_previous, diff, save_snapshot, URL, fetch_html
+from urllib.parse import urljoin
+
+import discord
 from dotenv import load_dotenv
 from tweepy import Client
-from urllib.parse import urljoin
+from watcher import URL, diff, fetch_html, load_previous, make_snapshot, save_snapshot
 
 load_dotenv()
 
