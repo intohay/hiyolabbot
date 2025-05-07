@@ -43,8 +43,9 @@ async def watch_loop() -> None:
             change_descriptions = "\n".join(f"• {c}" for c in changes)
             msg = (
                 "@everyone\n"
-                f"[ひよラボ]({URL})が更新されました！\n"
-                f"以下のセクションに変更がありました:\n{change_descriptions}"
+                f"ひよラボが更新されました！\n"
+                f"以下のセクションに変更がありました:\n{change_descriptions}\n"
+                f"{URL}\n"
             )
             await channel.send(msg)
             
