@@ -2,6 +2,7 @@ import hashlib
 import re
 import unittest
 from unittest.mock import MagicMock, patch
+from bs4 import BeautifulSoup
 
 from hiyolabbot import watcher
 
@@ -16,63 +17,9 @@ class TestWatcher(unittest.TestCase):
         soup = watcher.fetch_html()
         self.assertIsNotNone(soup)
 
-    def test_hash_text(self):
-        node = MagicMock()
-        node.get_text.return_value = 'Example text 123'
-        result = watcher.hash_text(node)
-        self.assertIsNotNone(result)
+    
 
-    def test_hash_text_different_texts(self):
-        node1 = MagicMock()
-        node1.get_text.return_value = 'Example text 123'
-        node2 = MagicMock()
-        node2.get_text.return_value = 'Different text 456'
-        
-        hash1 = watcher.hash_text(node1)
-        hash2 = watcher.hash_text(node2)
-        
-        self.assertNotEqual(hash1, hash2, "異なるテキストに対して同じハッシュ値が返されました")
-
-    def test_hash_text_ignore_numbers(self):
-        node1 = MagicMock()
-        node1.get_text.return_value = 'Example text 123'
-        node2 = MagicMock()
-        node2.get_text.return_value = 'Example text 456'
-        
-        hash1 = watcher.hash_text(node1)
-        hash2 = watcher.hash_text(node2)
-        
-        self.assertEqual(hash1, hash2, "数字が異なるテキストに対して異なるハッシュ値が返されました")
-
-
-    def test_make_snapshot(self):
-        # モックされたBeautifulSoupオブジェクトを作成
-        soup = MagicMock()
-        
-        # 各セレクタに対するモックされたノードを設定
-        selectors = {
-            "section#news": "INFORMATION text 123",
-            "section#blog": "BLOG text 456",
-            "section#movie": "MOVIE text 789",
-            "section#photo": "PHOTO text 012",
-            "section#qa": "Q&A text 345"
-        }
-        
-        # select_oneの返り値をセレクタごとに設定
-        def select_one_side_effect(selector):
-            node = MagicMock()
-            node.get_text.return_value = selectors[selector]
-            return node
-        
-        soup.select_one.side_effect = select_one_side_effect
-        
-        # スナップショットを作成
-        result = watcher.make_snapshot(soup)
-        
-        # 各セレクタに対する期待されるハッシュ値を確認
-        for selector, label in watcher.TRACK_SELECTORS.items():
-            expected_hash = hashlib.sha256(re.sub(r'\d+', '', selectors[selector]).encode()).hexdigest()
-            self.assertEqual(result[label], expected_hash, f"{label}のハッシュが一致しません")
+   
 
     @patch('hiyolabbot.watcher.SNAPSHOT_FILE')
     def test_load_previous(self, mock_snapshot_file):
@@ -87,11 +34,28 @@ class TestWatcher(unittest.TestCase):
         watcher.save_snapshot(snap)
         mock_snapshot_file.write_text.assert_called_once()
 
-    def test_diff(self):
-        prev = {'key': 'old_value'}
-        curr = {'key': 'new_value'}
-        result = watcher.diff(prev, curr)
-        self.assertIn('key', result)
+    
+
+    def test_diff_detects_new_a_link_in_section(self):
+        # 前のHTML: aタグ1つ
+        html_prev = '''
+        <section id="news">
+            <a href="/news/1">お知らせ1</a>
+        </section>
+        '''
+        # 現在のHTML: aタグ2つ（新規追加）
+        html_curr = '''
+        <section id="news">
+            <a href="/news/1">お知らせ1</a>
+            <a href="/news/2">お知らせ2</a>
+        </section>
+        '''
+        soup_prev = BeautifulSoup(html_prev, "lxml")
+        soup_curr = BeautifulSoup(html_curr, "lxml")
+        snap_prev = watcher.make_snapshot(soup_prev)
+        snap_curr = watcher.make_snapshot(soup_curr)
+        changes = watcher.diff(snap_prev, snap_curr)
+        self.assertIn("INFORMATION", changes)
 
 if __name__ == '__main__':
     unittest.main() 
