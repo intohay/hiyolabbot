@@ -1,8 +1,27 @@
 {
-  "INFORMATION": "1f71a553250223d6d28715d4f2ed03e8b3ec104fef7bde7f31c6d0de09ba7072",
-  "SCHEDULE": "e8eba16be4ee98127c440119ff625a0ec654f0439b362662957c050a06904f86",
-  "BLOG": "9537d9bf2a2fb9fb3739f76a1a8dbb53870951685b06f2051c9e59a90733a0e0",
-  "MOVIE": "db920f8e662352d49d435f49a499365326947fe633d97e8c3c71ac72e577e413",
-  "PHOTO": "6a6015fa30adbe6d3fd10c455ac3196f463454cbc3ab50f53b473d5ba33f2387",
-  "Q&A": "8504890aac79bc5653e2f1bf66887f45be191c5965f3fc341d04a200f87b8b93"
+  "INFORMATION": [
+    "/news/1",
+    "/news/detail/46239",
+    "/news/detail/46233",
+    "/news/detail/45850"
+  ],
+  "BLOG": [
+    "/blog/listall",
+    "/blog/detail/60460"
+  ],
+  "MOVIE": [
+    "/movie/list/1",
+    "/movie/detail/55768",
+    "/movie/detail/55479",
+    "/movie/detail/55489"
+  ],
+  "PHOTO": [
+    "/photo/list/3",
+    "/photo/331/detail/55767",
+    "/photo/331/detail/55766",
+    "/photo/331/detail/55480"
+  ],
+  "Q&A": [
+    "/qa"
+  ]
 }
