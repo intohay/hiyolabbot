@@ -4,10 +4,10 @@ from datetime import datetime
 from urllib.parse import urljoin
 
 import discord
+import requests
 from dotenv import load_dotenv
 from tweepy import Client
 from watcher import URL, diff, fetch_html, load_previous, make_snapshot, save_snapshot
-import requests
 
 load_dotenv()
 
@@ -24,6 +24,7 @@ x_client = Client(
 
 CHECK_INTERVAL = 60  # 1 分ごと
 
+
 async def watch_loop() -> None:
     await client.wait_until_ready()
     channel_id = int(os.environ["DISCORD_CHANNEL_ID"])
@@ -31,11 +32,19 @@ async def watch_loop() -> None:
     if channel is None:
         raise RuntimeError(f"Channel {channel_id} not found or bot lacks access.")
 
+    # 開発用チャンネルの取得
+    dev_channel_id = int(os.environ["DEV_CHANNEL_ID"])
+    dev_channel = client.get_channel(dev_channel_id)
+    if dev_channel is None:
+        raise RuntimeError(
+            f"Dev channel {dev_channel_id} not found or bot lacks access."
+        )
+
     while not client.is_closed():
         try:
             curr = make_snapshot(fetch_html())
         except requests.exceptions.RequestException as e:
-            await channel.send(f"HTMLの取得に失敗しました: {e}")
+            await dev_channel.send(f"HTMLの取得に失敗しました: {e}")
             continue  # ループを継続
         prev = load_previous()
         changes = diff(prev, curr)
@@ -48,9 +57,9 @@ async def watch_loop() -> None:
                 f"{URL}\n"
             )
             await channel.send(msg)
-            
+
             # https://hamagishihiyori.fanpla.jp/?t=202505030444 のように timestamp を含む URL を使用する
-            # 理由: 
+            # 理由:
             #   こうすることで同じ内容のツイートではないと判定されて POST に失敗することがなくなる。
             #   また、t=xxx を含めても遷移先は https://hamagishihiyori.fanpla.jp/ にリダイレクトされる。
             #   その結果、ツイートのプレビューは https://hamagishihiyori.fanpla.jp/ のものになり、きれいに表示される。
@@ -71,8 +80,10 @@ async def watch_loop() -> None:
                 x_client.create_tweet(text=x_msg)
             except Exception as e:
                 # 処理に失敗してもループを継続させる
-                await channel.send(f"X に投稿に失敗しました: {e}\n投稿したかった文面:\n{x_msg}")
-        
+                await dev_channel.send(
+                    f"X に投稿に失敗しました: {e}\n投稿したかった文面:\n{x_msg}"
+                )
+
         save_snapshot(curr)
         await asyncio.sleep(CHECK_INTERVAL)
 
