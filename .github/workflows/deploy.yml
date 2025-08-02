@@ -11,12 +11,14 @@ jobs:
 
     steps:
     - name: チェックアウトリポジトリ
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: セットアップPython
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: '3.12'
+        cache: 'pip'
+        cache-dependency-path: pyproject.toml
 
     - name: 依存関係をインストール
       run: |
@@ -44,6 +46,9 @@ jobs:
 
           ./.venv/bin/pip install --upgrade pip setuptools wheel
           ./.venv/bin/pip install .
+
+          # Playwrightのブラウザをインストール
+          ./.venv/bin/playwright install chromium
 
           ./.venv/bin/pip list | grep tweepy
 

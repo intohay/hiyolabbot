@@ -8,6 +8,7 @@ import requests
 from dotenv import load_dotenv
 from tweepy import Client
 from watcher import URL, diff, fetch_html, load_previous, make_snapshot, save_snapshot
+from talk_watcher import check_talk_updates
 
 load_dotenv()
 
@@ -40,7 +41,12 @@ async def watch_loop() -> None:
             f"Dev channel {dev_channel_id} not found or bot lacks access."
         )
 
+    # 会員ログイン情報の取得
+    plusmember_id = os.environ.get("PLUSMEMBER_ID")
+    plusmember_password = os.environ.get("PLUSMEMBER_PASSWORD")
+    
     while not client.is_closed():
+        # 公開ページの監視
         try:
             curr = make_snapshot(fetch_html())
         except requests.exceptions.RequestException as e:
@@ -85,6 +91,42 @@ async def watch_loop() -> None:
                 )
 
         save_snapshot(curr)
+        
+        # トークページの監視（認証情報がある場合のみ）
+        if plusmember_id and plusmember_password:
+            try:
+                talk_changes = await check_talk_updates(plusmember_id, plusmember_password)
+                if talk_changes and talk_changes != ["トーク初回スキャン（スナップショット作成）"]:
+                    
+                    talk_msg = (
+                        "@everyone\n"
+                        "ひよりとーくが更新されました！\n"
+                        "https://hamagishihiyori.fanpla.jp/community/detail/55/?f=artist\n"
+                    )
+                    await channel.send(talk_msg)
+                    
+                    # Twitterにも投稿
+                    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                    x_talk_link = f"https://hamagishihiyori.fanpla.jp/community/detail/55/?f=artist&t={timestamp}"
+                    x_talk_msg = (
+                        "／\n"
+                        "💬 ひよりとーくが更新されました！\n"
+                        "＼\n\n"
+                        "#ひよりとーく\n"
+                        "#ひよラボ\n"
+                        "#HiyoLab\n"
+                        "#濱岸ひより\n"
+                        f"{x_talk_link}"
+                    )
+                    try:
+                        x_client.create_tweet(text=x_talk_msg)
+                    except Exception as e:
+                        await dev_channel.send(
+                            f"X にトーク更新の投稿に失敗しました: {e}\n投稿したかった文面:\n{x_talk_msg}"
+                        )
+            except Exception as e:
+                await dev_channel.send(f"トークページの監視中にエラーが発生しました: {e}")
+        
         await asyncio.sleep(CHECK_INTERVAL)
 
 
