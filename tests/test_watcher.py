@@ -40,14 +40,14 @@ class TestWatcher(unittest.TestCase):
         # 前のHTML: aタグ1つ
         html_prev = '''
         <section id="news">
-            <a href="/news/1">お知らせ1</a>
+            <a href="/news/12445">お知らせ1</a>
         </section>
         '''
         # 現在のHTML: aタグ2つ（新規追加）
         html_curr = '''
         <section id="news">
-            <a href="/news/1">お知らせ1</a>
-            <a href="/news/2">お知らせ2</a>
+            <a href="/news/12445">お知らせ1</a>
+            <a href="/news/12446">お知らせ2</a>
         </section>
         '''
         soup_prev = BeautifulSoup(html_prev, "lxml")
