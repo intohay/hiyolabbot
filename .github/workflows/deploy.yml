@@ -47,6 +47,9 @@ jobs:
           ./.venv/bin/pip install --upgrade pip setuptools wheel
           ./.venv/bin/pip install .
 
+          # Playwrightのシステム依存関係をインストール
+          sudo ./.venv/bin/playwright install-deps chromium
+
           # Playwrightのブラウザをインストール
           ./.venv/bin/playwright install chromium
 

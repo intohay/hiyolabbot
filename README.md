@@ -43,6 +43,10 @@ uv pip install --requirements pyproject.toml
 メンバー限定ページの監視にはChromiumが必要です：
 
 ```bash
+# Ubuntu/Debian の場合、まずシステム依存関係をインストール
+sudo playwright install-deps chromium
+
+# その後、Chromiumブラウザをインストール
 playwright install chromium
 ```
 
