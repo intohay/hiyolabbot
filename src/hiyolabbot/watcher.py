@@ -1,6 +1,7 @@
 import json
 import logging
 import pathlib
+import re
 
 import bs4  # beautifulsoup4
 import requests
@@ -16,7 +17,6 @@ TRACK_SELECTORS = {
     "section#blog": "BLOG",
     "section#movie": "MOVIE",
     "section#photo": "PHOTO",
-    "section#qa": "Q&A",
 }
 
 HEADERS = {
@@ -42,6 +42,8 @@ def extract_item_ids(section: bs4.Tag | None) -> list[str]:
     今回は各コンテンツへのリンク (href) を ID 代わりに使用する。
     リンクのテキストや日付が微修正されても href が変わらない限り
     差分として検知しないため、"新しいコンテンツ追加" の検知に強い。
+    
+    末尾が5桁以上の数字で終わるURL（detail系）のみを抽出する。
     """
     if section is None:
         return []
@@ -51,7 +53,10 @@ def extract_item_ids(section: bs4.Tag | None) -> list[str]:
         href: str = a["href"].strip()
         # 不要なクエリパラメータや末尾のスラッシュを除去して正規化
         href = href.split("?")[0].rstrip("/")
-        hrefs.append(href)
+        
+        # 末尾が5桁以上の数字で終わるURLのみを追加（detail系のURL）
+        if re.search(r'/\d{5,}$', href):
+            hrefs.append(href)
 
     # 重複除去（順序維持）
     seen: set[str] = set()
