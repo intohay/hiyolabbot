@@ -26,6 +26,9 @@ x_client = Client(
 CHECK_INTERVAL = 60  # 1 分ごと
 
 
+# Ensure the background task starts only once
+_watch_task: asyncio.Task | None = None
+
 async def watch_loop() -> None:
     await client.wait_until_ready()
     channel_id = int(os.environ["CHANNEL_ID"])
@@ -134,7 +137,12 @@ async def watch_loop() -> None:
 async def on_ready() -> None:
     print(f"Logged in as {client.user} (id={client.user.id})")
     # Start background task once the gateway is ready:
-    client.loop.create_task(watch_loop())
+    global _watch_task
+    if _watch_task is None or _watch_task.done():
+        _watch_task = client.loop.create_task(watch_loop())
+        print("watch_loop started")
+    else:
+        print("watch_loop already running; skip starting a new one")
 
 
 if __name__ == "__main__":
