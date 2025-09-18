@@ -6,9 +6,9 @@ from urllib.parse import urljoin
 import discord
 import requests
 from dotenv import load_dotenv
+from talk_watcher import check_talk_updates
 from tweepy import Client
 from watcher import URL, diff, fetch_html, load_previous, make_snapshot, save_snapshot
-from talk_watcher import check_talk_updates
 
 load_dotenv()
 
@@ -29,6 +29,7 @@ CHECK_INTERVAL = 60  # 1 分ごと
 # Ensure the background task starts only once
 _watch_task: asyncio.Task | None = None
 
+
 async def watch_loop() -> None:
     await client.wait_until_ready()
     channel_id = int(os.environ["CHANNEL_ID"])
@@ -47,13 +48,14 @@ async def watch_loop() -> None:
     # 会員ログイン情報の取得
     plusmember_id = os.environ.get("PLUSMEMBER_ID")
     plusmember_password = os.environ.get("PLUSMEMBER_PASSWORD")
-    
+
     while not client.is_closed():
         # 公開ページの監視
         try:
             curr = make_snapshot(fetch_html())
         except requests.exceptions.RequestException as e:
             await dev_channel.send(f"HTMLの取得に失敗しました: {e}")
+            await asyncio.sleep(CHECK_INTERVAL)
             continue  # ループを継続
         prev = load_previous()
         changes = diff(prev, curr)
@@ -94,20 +96,23 @@ async def watch_loop() -> None:
                 )
 
         save_snapshot(curr)
-        
+
         # トークページの監視（認証情報がある場合のみ）
         if plusmember_id and plusmember_password:
             try:
-                talk_changes = await check_talk_updates(plusmember_id, plusmember_password)
-                if talk_changes and talk_changes != ["トーク初回スキャン（スナップショット作成）"]:
-                    
+                talk_changes = await check_talk_updates(
+                    plusmember_id, plusmember_password
+                )
+                if talk_changes and talk_changes != [
+                    "トーク初回スキャン（スナップショット作成）"
+                ]:
                     talk_msg = (
                         "@everyone\n"
                         "ひよりとーくが更新されました！\n"
                         "https://hamagishihiyori.fanpla.jp/community/detail/55/?f=artist\n"
                     )
                     await channel.send(talk_msg)
-                    
+
                     # Twitterにも投稿
                     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
                     x_talk_link = f"https://hamagishihiyori.fanpla.jp/community/detail/55/?f=artist&t={timestamp}"
@@ -128,8 +133,10 @@ async def watch_loop() -> None:
                             f"X にトーク更新の投稿に失敗しました: {e}\n投稿したかった文面:\n{x_talk_msg}"
                         )
             except Exception as e:
-                await dev_channel.send(f"トークページの監視中にエラーが発生しました: {e}")
-        
+                await dev_channel.send(
+                    f"トークページの監視中にエラーが発生しました: {e}"
+                )
+
         await asyncio.sleep(CHECK_INTERVAL)
 
 
