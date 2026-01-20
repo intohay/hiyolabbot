@@ -1,6 +1,6 @@
 # HiyoLab Bot
 
-濱岸ひよりのファンクラブページ（ https://hamagishihiyori.fanpla.jp/ ）を定期的に監視し、更新があればDiscordチャンネルとX(Twitter)に通知するBotです。
+濱岸ひよりのファンクラブページ（ https://hamagishihiyori.fanpla.jp/ ）を定期的に監視し、更新があればDiscordチャンネルとX(Twitter)、LINEに通知するBotです。
 
 ## 概要
 
@@ -9,6 +9,7 @@
 - 各セクション内のaタグ（リンク）のhrefリストを比較し、新しいリンクが追加された場合のみ差分として検出
 - 変更があった場合、Discordの指定チャンネルにメッセージを投稿
 - 変更があった場合、X(Twitter)にメッセージを投稿（タイムスタンプ付きURLで重複投稿を回避）
+- 変更があった場合、LINE Bot によるメッセージを投稿
 
 ## 前提条件
 
@@ -75,6 +76,9 @@ cp .env.example .env
 - **メンバー限定ページ関連（オプション）**
   - `PLUSMEMBER_ID`: ファンクラブのログインID
   - `PLUSMEMBER_PASSWORD`: ファンクラブのパスワード
+
+- **LINE Bot関連**
+  - `LINE_ACCESS_TOKEN`: LINE Bot に紐づくアクセストークン
 
 ### 5. Bot の起動
 

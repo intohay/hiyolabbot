@@ -70,6 +70,7 @@ Required in .env:
 - Twitter API credentials (5 variables)
 - PLUSMEMBER_ID (optional, for member page monitoring)
 - PLUSMEMBER_PASSWORD (optional, for member page monitoring)
+- LINE_ACCESS_TOKEN（for LINE broadcast）
 
 ## Testing
 
