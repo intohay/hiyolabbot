@@ -10,6 +10,14 @@ from talk_watcher import check_talk_updates
 from tweepy import Client
 from watcher import URL, diff, fetch_html, load_previous, make_snapshot, save_snapshot
 
+from linebot.v3.messaging import (
+    Configuration,
+    ApiClient,
+    MessagingApi,
+    BroadcastRequest,
+    TextMessage,
+)
+
 load_dotenv()
 
 intents = discord.Intents.default()
@@ -24,6 +32,16 @@ x_client = Client(
 )
 
 CHECK_INTERVAL = 60  # 1 分ごと
+
+
+def _broadcast_line_message(message: str) -> None:
+    config = Configuration(access_token=os.environ.get("LINE_ACCESS_TOKEN"))
+
+    with ApiClient(config) as api_client:
+        messaging_api = MessagingApi(api_client)
+        text_message = TextMessage(text=message)
+        broadcast_request = BroadcastRequest(messages=[text_message])
+        messaging_api.broadcast(broadcast_request)
 
 
 # Ensure the background task starts only once
@@ -95,6 +113,19 @@ async def watch_loop() -> None:
                     f"X に投稿に失敗しました: {e}\n投稿したかった文面:\n{x_msg}"
                 )
 
+            line_message = (
+                "ひよラボが更新されました！\n"
+                "以下のセクションに変更がありました:\n"
+                f"{change_descriptions}\n"
+                f"{URL}"
+            )
+            try:
+                _broadcast_line_message(line_message)
+            except Exception as e:
+                await dev_channel.send(
+                    f"LINE に投稿に失敗しました: {e}\n投稿したかった文面:\n{line_message}"
+                )
+
         save_snapshot(curr)
 
         # トークページの監視（認証情報がある場合のみ）
@@ -132,6 +163,18 @@ async def watch_loop() -> None:
                         await dev_channel.send(
                             f"X にトーク更新の投稿に失敗しました: {e}\n投稿したかった文面:\n{x_talk_msg}"
                         )
+
+                    line_talk_message = (
+                        "ひよりとーくが更新されました！\n"
+                        "https://hamagishihiyori.fanpla.jp/community/detail/55/?f=artist"
+                    )
+                    try:
+                        _broadcast_line_message(line_talk_message)
+                    except Exception as e:
+                        await dev_channel.send(
+                            f"LINE にトーク更新の投稿に失敗しました: {e}\n投稿したかった文面:\n{line_talk_message}"
+                        )
+
             except Exception as e:
                 await dev_channel.send(
                     f"トークページの監視中にエラーが発生しました: {e}"
