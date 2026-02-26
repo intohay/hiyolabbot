@@ -1,7 +1,9 @@
 import json
 import logging
+import os
 import pathlib
 import re
+import tempfile
 from typing import Optional
 
 from playwright.async_api import async_playwright, Browser, Page
@@ -148,7 +150,17 @@ def load_talk_previous() -> Optional[dict[str, list[str]]]:
 def save_talk_snapshot(snap: dict[str, list[str]]) -> None:
     """トークスナップショットを保存"""
     logging.info("Saving talk snapshot")
-    TALK_SNAPSHOT_FILE.write_text(json.dumps(snap, ensure_ascii=False, indent=2))
+    data = json.dumps(snap, ensure_ascii=False, indent=2)
+    tmp_fd, tmp_path = tempfile.mkstemp(
+        dir=TALK_SNAPSHOT_FILE.parent, suffix=".tmp"
+    )
+    try:
+        with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
+            f.write(data)
+        pathlib.Path(tmp_path).replace(TALK_SNAPSHOT_FILE)
+    except BaseException:
+        pathlib.Path(tmp_path).unlink(missing_ok=True)
+        raise
 
 
 def diff_talk(prev: Optional[dict[str, list[str]]], curr: dict[str, list[str]]) -> list[str]:

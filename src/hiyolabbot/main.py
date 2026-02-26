@@ -71,12 +71,16 @@ async def watch_loop() -> None:
         # 公開ページの監視
         try:
             curr = make_snapshot(fetch_html())
+            prev = load_previous()
+            changes = diff(prev, curr)
         except requests.exceptions.RequestException as e:
             await dev_channel.send(f"HTMLの取得に失敗しました: {e}")
             await asyncio.sleep(CHECK_INTERVAL)
-            continue  # ループを継続
-        prev = load_previous()
-        changes = diff(prev, curr)
+            continue
+        except Exception as e:
+            await dev_channel.send(f"公開ページの監視中にエラーが発生しました: {e}")
+            await asyncio.sleep(CHECK_INTERVAL)
+            continue
         if changes and changes != ["初回スキャン（スナップショット作成）"]:
             change_descriptions = "\n".join(f"• {c}" for c in changes)
             msg = (

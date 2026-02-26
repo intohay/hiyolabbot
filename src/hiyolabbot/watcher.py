@@ -1,7 +1,9 @@
 import json
 import logging
+import os
 import pathlib
 import re
+import tempfile
 
 import bs4  # beautifulsoup4
 import requests
@@ -75,13 +77,31 @@ def make_snapshot(soup: bs4.BeautifulSoup) -> dict[str, list[str]]:
 
 def load_previous() -> dict[str, list[str]] | None:
     if SNAPSHOT_FILE.exists():
-        return json.loads(SNAPSHOT_FILE.read_text(encoding="utf‑8"))
+        try:
+            text = SNAPSHOT_FILE.read_text(encoding="utf-8")
+            if not text.strip():
+                logging.warning("snapshot.json is empty, treating as first scan")
+                return None
+            return json.loads(text)
+        except json.JSONDecodeError:
+            logging.warning("snapshot.json is corrupted, treating as first scan")
+            return None
     return None
 
 
 def save_snapshot(snap: dict[str, list[str]]) -> None:
     logging.info("Saving snapshot")
-    SNAPSHOT_FILE.write_text(json.dumps(snap, ensure_ascii=False, indent=2))
+    data = json.dumps(snap, ensure_ascii=False, indent=2)
+    tmp_fd, tmp_path = tempfile.mkstemp(
+        dir=SNAPSHOT_FILE.parent, suffix=".tmp"
+    )
+    try:
+        with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
+            f.write(data)
+        pathlib.Path(tmp_path).replace(SNAPSHOT_FILE)
+    except BaseException:
+        pathlib.Path(tmp_path).unlink(missing_ok=True)
+        raise
 
 
 def diff(prev: dict[str, list[str]] | None, curr: dict[str, list[str]]) -> list[str]:
