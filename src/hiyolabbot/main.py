@@ -44,6 +44,22 @@ def _broadcast_line_message(message: str) -> None:
         messaging_api.broadcast(broadcast_request)
 
 
+def _ping_healthcheck() -> None:
+    """Healthchecks.io へ死活監視のハートビートを送信する。
+
+    HEALTHCHECK_URL が設定されている場合のみ ping を送る。
+    監視 ping の失敗は本体の監視処理を止めないよう、例外は握りつぶす。
+    一定時間 ping が途絶えると Healthchecks.io 側がダウンとして通知する。
+    """
+    url = os.environ.get("HEALTHCHECK_URL")
+    if not url:
+        return
+    try:
+        requests.get(url, timeout=10)
+    except requests.exceptions.RequestException:
+        pass
+
+
 # Ensure the background task starts only once
 _watch_task: asyncio.Task | None = None
 
@@ -183,6 +199,9 @@ async def watch_loop() -> None:
                 await dev_channel.send(
                     f"トークページの監視中にエラーが発生しました: {e}"
                 )
+
+        # 1周分の監視が正常に完了したのでハートビートを送信する
+        _ping_healthcheck()
 
         await asyncio.sleep(CHECK_INTERVAL)
 

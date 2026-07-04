@@ -80,6 +80,9 @@ cp .env.example .env
 - **LINE Bot関連**
   - `LINE_ACCESS_TOKEN`: LINE Bot に紐づくアクセストークン
 
+- **死活監視関連（オプション）**
+  - `HEALTHCHECK_URL`: [Healthchecks.io](https://healthchecks.io) の Ping URL。設定すると監視ループが1周正常に完了するたびにハートビートを送信する。未設定の場合は何も送信しない。
+
 ### 5. Bot の起動
 
 ```bash
@@ -129,6 +132,7 @@ GitHub Actions を使用した自動デプロイが設定されています：
 * 差分検出は「各セクション内のaタグのhref属性（リンク先URL）」をIDとして扱い、**新しいリンクが追加された場合のみ通知**します。リンクテキストや日付の微修正では通知されません。
 * メンバー限定ページの監視にはPlaywrightによるブラウザ自動化を使用しており、セッション情報は `playwright_session.json` に保存されます。
 * エラーが発生した場合は、`DEV_CHANNEL_ID` で指定された開発用チャンネルに通知されます。
+* `HEALTHCHECK_URL` を設定すると、監視ループが1周正常に完了するたびに [Healthchecks.io](https://healthchecks.io) へハートビート（Ping）を送信します。プロセスの停止・サーバーダウン・ネットワーク断などで Ping が途絶えると Healthchecks.io 側から通知されるため、Discord のエラー通知（アプリ稼働が前提）ではカバーできない「アプリごと落ちたケース」の外部監視ができます。
 
 ---
 
