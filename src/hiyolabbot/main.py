@@ -18,6 +18,12 @@ from linebot.v3.messaging import (
     TextMessage,
 )
 
+# glibc の A/AAAA 並列問い合わせは、長時間プロセスがアイドルなリゾルバソケットを
+# 再利用する際に稀に EAI_NONAME を返す（実測: 素の状態 8/15 失敗 →
+# single-request-reopen で 0/15）。A と AAAA を別ソケットで問い合わせることで解消する。
+# 最初の名前解決より前に設定する必要があるため、ここで環境変数を立てておく。
+os.environ.setdefault("RES_OPTIONS", "single-request-reopen")
+
 load_dotenv()
 
 intents = discord.Intents.default()
@@ -33,6 +39,12 @@ x_client = Client(
 
 CHECK_INTERVAL = 60  # 1 分ごと
 
+# 公開ページ取得のリトライ設定（一過性の DNS / ネットワーク断への耐性）
+FETCH_RETRY = 3          # 1 サイクル内での取得リトライ回数
+FETCH_RETRY_WAIT = 5     # リトライ間隔（秒）
+# 連続失敗がこの回数に達したときだけ DEV へ通知する（毎分の通知スパムを防ぐ）
+FAILURE_NOTIFY_THRESHOLD = 5
+
 
 def _broadcast_line_message(message: str) -> None:
     config = Configuration(access_token=os.environ.get("LINE_ACCESS_TOKEN"))
@@ -42,6 +54,41 @@ def _broadcast_line_message(message: str) -> None:
         text_message = TextMessage(text=message)
         broadcast_request = BroadcastRequest(messages=[text_message])
         messaging_api.broadcast(broadcast_request)
+
+
+def _ping_healthcheck() -> None:
+    """Healthchecks.io へ死活監視のハートビートを送信する。
+
+    HEALTHCHECK_URL が設定されている場合のみ ping を送る。
+    監視 ping の失敗は本体の監視処理を止めないよう、例外は握りつぶす。
+    一定時間 ping が途絶えると Healthchecks.io 側がダウンとして通知する。
+    """
+    url = os.environ.get("HEALTHCHECK_URL")
+    if not url:
+        return
+    try:
+        requests.get(url, timeout=10)
+    except requests.exceptions.RequestException:
+        pass
+
+
+async def _fetch_html_with_retry() -> "object":
+    """公開ページ取得を数回リトライする。
+
+    一過性の DNS 解決失敗・ネットワーク断は数秒〜で回復することが多いため、
+    1 サイクル内で FETCH_RETRY 回まで再試行する。全て失敗した場合は最後の
+    例外を送出する（呼び出し側で連続失敗回数を管理して通知を制御する）。
+    """
+    last_exc: Exception | None = None
+    for attempt in range(FETCH_RETRY):
+        try:
+            return fetch_html()
+        except requests.exceptions.RequestException as e:
+            last_exc = e
+            if attempt < FETCH_RETRY - 1:
+                await asyncio.sleep(FETCH_RETRY_WAIT)
+    assert last_exc is not None
+    raise last_exc
 
 
 # Ensure the background task starts only once
@@ -67,20 +114,34 @@ async def watch_loop() -> None:
     plusmember_id = os.environ.get("PLUSMEMBER_ID")
     plusmember_password = os.environ.get("PLUSMEMBER_PASSWORD")
 
+    # 公開ページ取得の連続失敗回数（一過性ブレの通知スパムを抑制するために使う）
+    fetch_fail_streak = 0
+
     while not client.is_closed():
         # 公開ページの監視
         try:
-            curr = make_snapshot(fetch_html())
+            curr = make_snapshot(await _fetch_html_with_retry())
             prev = load_previous()
             changes = diff(prev, curr)
         except requests.exceptions.RequestException as e:
-            await dev_channel.send(f"HTMLの取得に失敗しました: {e}")
+            fetch_fail_streak += 1
+            # 一過性の失敗では通知せず、連続失敗が閾値に達したときだけ1回だけ通知する
+            if fetch_fail_streak == FAILURE_NOTIFY_THRESHOLD:
+                await dev_channel.send(
+                    f"HTMLの取得に{FAILURE_NOTIFY_THRESHOLD}回連続で失敗しました"
+                    f"（以降この連続失敗の通知は抑制します）: {e}"
+                )
             await asyncio.sleep(CHECK_INTERVAL)
             continue
         except Exception as e:
             await dev_channel.send(f"公開ページの監視中にエラーが発生しました: {e}")
             await asyncio.sleep(CHECK_INTERVAL)
             continue
+        else:
+            # 取得に成功。直前まで閾値以上の連続失敗が続いていたら回復を通知する
+            if fetch_fail_streak >= FAILURE_NOTIFY_THRESHOLD:
+                await dev_channel.send("HTMLの取得が回復しました。")
+            fetch_fail_streak = 0
         if changes and changes != ["初回スキャン（スナップショット作成）"]:
             change_descriptions = "\n".join(f"• {c}" for c in changes)
             msg = (
@@ -183,6 +244,9 @@ async def watch_loop() -> None:
                 await dev_channel.send(
                     f"トークページの監視中にエラーが発生しました: {e}"
                 )
+
+        # 1周分の監視が正常に完了したのでハートビートを送信する
+        _ping_healthcheck()
 
         await asyncio.sleep(CHECK_INTERVAL)
 

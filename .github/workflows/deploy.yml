@@ -1,9 +1,11 @@
 name: Deploy
 
+# 自サーバーへの移行に伴い、旧サーバー（intohay 環境）への自動デプロイは停止中。
+# push トリガーを外し、手動実行（workflow_dispatch）のみに変更している。
+# 自分のサーバー向けにデプロイを再開する場合は、下記 host/username/key の
+# Secrets とデプロイ先パスを自分の環境に差し替えたうえで再設定すること。
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
