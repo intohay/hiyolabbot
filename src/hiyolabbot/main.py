@@ -18,6 +18,12 @@ from linebot.v3.messaging import (
     TextMessage,
 )
 
+# glibc の A/AAAA 並列問い合わせは、長時間プロセスがアイドルなリゾルバソケットを
+# 再利用する際に稀に EAI_NONAME を返す（実測: 素の状態 8/15 失敗 →
+# single-request-reopen で 0/15）。A と AAAA を別ソケットで問い合わせることで解消する。
+# 最初の名前解決より前に設定する必要があるため、ここで環境変数を立てておく。
+os.environ.setdefault("RES_OPTIONS", "single-request-reopen")
+
 load_dotenv()
 
 intents = discord.Intents.default()
