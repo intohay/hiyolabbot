@@ -33,6 +33,12 @@ x_client = Client(
 
 CHECK_INTERVAL = 60  # 1 分ごと
 
+# 公開ページ取得のリトライ設定（一過性の DNS / ネットワーク断への耐性）
+FETCH_RETRY = 3          # 1 サイクル内での取得リトライ回数
+FETCH_RETRY_WAIT = 5     # リトライ間隔（秒）
+# 連続失敗がこの回数に達したときだけ DEV へ通知する（毎分の通知スパムを防ぐ）
+FAILURE_NOTIFY_THRESHOLD = 5
+
 
 def _broadcast_line_message(message: str) -> None:
     config = Configuration(access_token=os.environ.get("LINE_ACCESS_TOKEN"))
@@ -60,6 +66,25 @@ def _ping_healthcheck() -> None:
         pass
 
 
+async def _fetch_html_with_retry() -> "object":
+    """公開ページ取得を数回リトライする。
+
+    一過性の DNS 解決失敗・ネットワーク断は数秒〜で回復することが多いため、
+    1 サイクル内で FETCH_RETRY 回まで再試行する。全て失敗した場合は最後の
+    例外を送出する（呼び出し側で連続失敗回数を管理して通知を制御する）。
+    """
+    last_exc: Exception | None = None
+    for attempt in range(FETCH_RETRY):
+        try:
+            return fetch_html()
+        except requests.exceptions.RequestException as e:
+            last_exc = e
+            if attempt < FETCH_RETRY - 1:
+                await asyncio.sleep(FETCH_RETRY_WAIT)
+    assert last_exc is not None
+    raise last_exc
+
+
 # Ensure the background task starts only once
 _watch_task: asyncio.Task | None = None
 
@@ -83,20 +108,34 @@ async def watch_loop() -> None:
     plusmember_id = os.environ.get("PLUSMEMBER_ID")
     plusmember_password = os.environ.get("PLUSMEMBER_PASSWORD")
 
+    # 公開ページ取得の連続失敗回数（一過性ブレの通知スパムを抑制するために使う）
+    fetch_fail_streak = 0
+
     while not client.is_closed():
         # 公開ページの監視
         try:
-            curr = make_snapshot(fetch_html())
+            curr = make_snapshot(await _fetch_html_with_retry())
             prev = load_previous()
             changes = diff(prev, curr)
         except requests.exceptions.RequestException as e:
-            await dev_channel.send(f"HTMLの取得に失敗しました: {e}")
+            fetch_fail_streak += 1
+            # 一過性の失敗では通知せず、連続失敗が閾値に達したときだけ1回だけ通知する
+            if fetch_fail_streak == FAILURE_NOTIFY_THRESHOLD:
+                await dev_channel.send(
+                    f"HTMLの取得に{FAILURE_NOTIFY_THRESHOLD}回連続で失敗しました"
+                    f"（以降この連続失敗の通知は抑制します）: {e}"
+                )
             await asyncio.sleep(CHECK_INTERVAL)
             continue
         except Exception as e:
             await dev_channel.send(f"公開ページの監視中にエラーが発生しました: {e}")
             await asyncio.sleep(CHECK_INTERVAL)
             continue
+        else:
+            # 取得に成功。直前まで閾値以上の連続失敗が続いていたら回復を通知する
+            if fetch_fail_streak >= FAILURE_NOTIFY_THRESHOLD:
+                await dev_channel.send("HTMLの取得が回復しました。")
+            fetch_fail_streak = 0
         if changes and changes != ["初回スキャン（スナップショット作成）"]:
             change_descriptions = "\n".join(f"• {c}" for c in changes)
             msg = (
