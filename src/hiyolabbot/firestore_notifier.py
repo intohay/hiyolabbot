@@ -81,6 +81,28 @@ def build_updates(
     return updates
 
 
+def publish_talk_update(latest_comment_id: str) -> None:
+    """ひよりとーくの新着検知を1件だけ書き込む。
+
+    トークは閲覧自体が会員限定のため、タイトル・本文・URL など中身は
+    一切書かない（section と検知時刻のみ）。アプリは通知文言の固定文で
+    トークタブへ遷移するので url も空でよい。
+    ドキュメントIDに最新コメントIDを使うことで、同じ新着に対して
+    onDocumentCreated が二度発火しない。
+    """
+    db = _get_client()
+    doc = {
+        "section": "TALK",
+        "title": "",
+        "url": "",
+        "postedAt": None,
+        "detectedAt": datetime.now(timezone.utc),
+    }
+    doc_id = f"talk-{latest_comment_id}"
+    db.collection("updates").document(doc_id).set(doc, merge=True)
+    logging.info("Firestore updates/%s written", doc_id)
+
+
 def publish_updates(updates: list[dict]) -> int:
     """updates コレクションへ書き込み、書き込んだ件数を返す。"""
     if not updates:

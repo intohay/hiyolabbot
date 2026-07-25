@@ -7,7 +7,7 @@ import discord
 import requests
 from dotenv import load_dotenv
 import firestore_notifier
-from talk_watcher import check_talk_updates
+from talk_watcher import check_talk_updates, load_talk_previous
 from tweepy import Client
 from watcher import (
     URL,
@@ -267,6 +267,22 @@ async def watch_loop() -> None:
                         await dev_channel.send(
                             f"LINE にトーク更新の投稿に失敗しました: {e}\n投稿したかった文面:\n{line_talk_message}"
                         )
+
+                    # HiyoLove アプリへの書き出し。トークは閲覧自体が会員限定の
+                    # ため、タイトル等の中身は一切書かず検知イベントだけを送る。
+                    # 初回スキャンは外側の if で除外済み。失敗してもループは継続。
+                    if firestore_notifier.is_enabled():
+                        try:
+                            talk_snap = load_talk_previous() or {}
+                            comment_ids = talk_snap.get("talk_comments", [])
+                            if comment_ids:
+                                # スナップショットは数値昇順ソート済み。
+                                # 末尾＝最新コメントIDをドキュメントIDに使う
+                                firestore_notifier.publish_talk_update(comment_ids[-1])
+                        except Exception as e:
+                            await dev_channel.send(
+                                f"HiyoLove (Firestore) へのトーク更新の書き出しに失敗しました: {e}"
+                            )
 
             except Exception as e:
                 await dev_channel.send(

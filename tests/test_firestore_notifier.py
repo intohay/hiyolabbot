@@ -110,6 +110,26 @@ class TestPublishUpdates(unittest.TestCase):
             set(doc.keys()), {"section", "title", "url", "postedAt", "detectedAt"}
         )
 
+    def test_publish_talk_update_writes_no_content(self):
+        # トークは閲覧自体が会員限定。section と検知時刻以外の中身
+        # （タイトル・本文・URL）が一切書かれないことを厳密に検証する
+        mock_db = MagicMock()
+        with patch.object(firestore_notifier, "_get_client", return_value=mock_db):
+            firestore_notifier.publish_talk_update("67890")
+        mock_db.collection.assert_called_once_with("updates")
+        mock_db.collection().document.assert_called_with("talk-67890")
+        args, kwargs = mock_db.collection().document().set.call_args
+        self.assertTrue(kwargs.get("merge"))
+        doc = args[0]
+        self.assertEqual(
+            set(doc.keys()), {"section", "title", "url", "postedAt", "detectedAt"}
+        )
+        self.assertEqual(doc["section"], "TALK")
+        self.assertEqual(doc["title"], "")
+        self.assertEqual(doc["url"], "")
+        self.assertIsNone(doc["postedAt"])
+        self.assertIsNotNone(doc["detectedAt"].tzinfo)
+
     def test_empty_updates_do_not_create_client(self):
         with patch.object(firestore_notifier, "_get_client") as mock_get:
             count = firestore_notifier.publish_updates([])
