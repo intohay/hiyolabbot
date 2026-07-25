@@ -13,6 +13,7 @@ dependencies = [
     "tweepy>=4.15.0",
     "playwright>=1.40.0",
     "line-bot-sdk>=3.21.0",
+    "google-cloud-firestore>=2.16.0",
 ]
 
 [build-system]

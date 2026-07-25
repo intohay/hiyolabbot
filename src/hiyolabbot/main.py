@@ -6,9 +6,19 @@ from urllib.parse import urljoin
 import discord
 import requests
 from dotenv import load_dotenv
+import firestore_notifier
 from talk_watcher import check_talk_updates
 from tweepy import Client
-from watcher import URL, diff, fetch_html, load_previous, make_snapshot, save_snapshot
+from watcher import (
+    URL,
+    diff,
+    diff_items,
+    fetch_html,
+    load_previous,
+    make_details,
+    make_snapshot,
+    save_snapshot,
+)
 
 from linebot.v3.messaging import (
     Configuration,
@@ -120,7 +130,8 @@ async def watch_loop() -> None:
     while not client.is_closed():
         # 公開ページの監視
         try:
-            curr = make_snapshot(await _fetch_html_with_retry())
+            soup = await _fetch_html_with_retry()
+            curr = make_snapshot(soup)
             prev = load_previous()
             changes = diff(prev, curr)
         except requests.exceptions.RequestException as e:
@@ -190,6 +201,23 @@ async def watch_loop() -> None:
                 await dev_channel.send(
                     f"LINE に投稿に失敗しました: {e}\n投稿したかった文面:\n{line_message}"
                 )
+
+            # HiyoLove アプリへの書き出し（Firestore 経由でプッシュ通知が飛ぶ）。
+            # Firestore 側の障害が Discord / X / LINE を止めないよう最後に置き、
+            # 失敗してもループは継続する。初回スキャン時は diff_items() が
+            # 空を返すため何も書かれない。
+            if firestore_notifier.is_enabled():
+                try:
+                    new_items = diff_items(prev, curr)
+                    if new_items:
+                        updates = firestore_notifier.build_updates(
+                            new_items, make_details(soup), URL
+                        )
+                        firestore_notifier.publish_updates(updates)
+                except Exception as e:
+                    await dev_channel.send(
+                        f"HiyoLove (Firestore) への書き出しに失敗しました: {e}"
+                    )
 
         save_snapshot(curr)
 
