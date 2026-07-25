@@ -83,6 +83,9 @@ cp .env.example .env
 - **死活監視関連（オプション）**
   - `HEALTHCHECK_URL`: [Healthchecks.io](https://healthchecks.io) の Ping URL。設定すると監視ループが1周正常に完了するたびにハートビートを送信する。未設定の場合は何も送信しない。
 
+- **HiyoLove アプリ連携関連（オプション）**
+  - `HIYOLOVE_SA_KEY`: Firestore 書き込み用サービスアカウント鍵（JSON）のファイルパス。**未設定なら Firestore への書き出しは丸ごと無効**になり、他の通知（Discord / X / LINE）には一切影響しない。設定する場合は後述の「HiyoLove アプリ連携について」を参照。
+
 ### 5. Bot の起動
 
 ```bash
@@ -101,7 +104,8 @@ python src/hiyolabbot/main.py
 │       ├── main.py              # メインBot（エントリポイント）
 │       ├── watcher.py           # 公開ページのスナップショット取得・差分検出ロジック
 │       ├── member_watcher.py    # メンバー限定ページ監視（Playwright使用）
-│       └── talk_watcher.py      # トーク（コメント）監視
+│       ├── talk_watcher.py      # トーク（コメント）監視
+│       └── firestore_notifier.py # HiyoLove アプリ向け Firestore 書き出し（オプション）
 ├── tests/                       # テストコード
 ├── .github/workflows/deploy.yml # GitHub Actions による自動デプロイ設定
 ├── pyproject.toml               # 依存パッケージ管理ファイル
@@ -133,6 +137,25 @@ GitHub Actions を使用した自動デプロイが設定されています：
 * メンバー限定ページの監視にはPlaywrightによるブラウザ自動化を使用しており、セッション情報は `playwright_session.json` に保存されます。
 * エラーが発生した場合は、`DEV_CHANNEL_ID` で指定された開発用チャンネルに通知されます。
 * `HEALTHCHECK_URL` を設定すると、監視ループが1周正常に完了するたびに [Healthchecks.io](https://healthchecks.io) へハートビート（Ping）を送信します。プロセスの停止・サーバーダウン・ネットワーク断などで Ping が途絶えると Healthchecks.io 側から通知されるため、Discord のエラー通知（アプリ稼働が前提）ではカバーできない「アプリごと落ちたケース」の外部監視ができます。
+
+---
+
+## HiyoLove アプリ連携について（オプション機能・要外部設定）
+
+更新検知を Firestore の `updates` コレクションにも書き出し、連携する iOS アプリ「HiyoLove」（個人用・非公式）へプッシュ通知を飛ばせます。**この機能は bot 単体では完結せず、以下の外部設定が前提**です。設定しない場合（`HIYOLOVE_SA_KEY` 未設定）は機能全体が無効になるだけで、既存の通知には影響しません。
+
+**前提となる外部リソース（bot リポジトリの外にあるもの）:**
+
+* Firebase プロジェクト（Firestore + Cloud Functions）。Cloud Functions が `updates` への `onDocumentCreated` で発火し、アプリへプッシュ通知を送る
+* Firestore へ**書き込みのみ**可能なサービスアカウント。読み取り権限は意図的に付与しない（端末のプッシュトークンが読めると第三者が全端末へ通知を送れてしまうため）。したがって bot は Firestore を読んで既読判定することはできず、既読管理は従来どおり `snapshot.json` / `talk_snapshot.json` で行う
+* サービスアカウントの鍵（JSON）はリポジトリ外に置き `chmod 600` とし、パスを `HIYOLOVE_SA_KEY` で渡す（git には絶対に入れない）
+
+**書き込み内容の方針（アプリ側の設計と対）:**
+
+* 公開4セクション（INFORMATION / BLOG / MOVIE / PHOTO）: タイトル・記事の絶対URL・サイト表示上の日付のみ。本文・画像・動画は書かない
+* ひよりとーく（TALK）: **閲覧自体が会員限定のため、タイトルすら書かない**。検知イベント（section と検知時刻）のみ
+* ドキュメントIDは URL / コメントIDから決定的に生成（例: `news-85341`、`talk-111829`）。`onDocumentCreated` は同一IDの再書き込みでは発火しないため、これが重複通知の防止になっている
+* 過去記事をまとめて投入する場合のみ `notify=false` を付ける（アプリ側で通知を抑制）
 
 ---
 
