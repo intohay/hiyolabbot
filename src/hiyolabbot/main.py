@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 from datetime import datetime
 from urllib.parse import urljoin
@@ -17,6 +18,7 @@ from linebot.v3.messaging import (
     BroadcastRequest,
     TextMessage,
 )
+from linebot.v3.messaging.exceptions import ApiException as LineApiException
 
 # glibc の A/AAAA 並列問い合わせは、長時間プロセスがアイドルなリゾルバソケットを
 # 再利用する際に稀に EAI_NONAME を返す（実測: 素の状態 8/15 失敗 →
@@ -49,11 +51,20 @@ FAILURE_NOTIFY_THRESHOLD = 5
 def _broadcast_line_message(message: str) -> None:
     config = Configuration(access_token=os.environ.get("LINE_ACCESS_TOKEN"))
 
-    with ApiClient(config) as api_client:
-        messaging_api = MessagingApi(api_client)
-        text_message = TextMessage(text=message)
-        broadcast_request = BroadcastRequest(messages=[text_message])
-        messaging_api.broadcast(broadcast_request)
+    try:
+        with ApiClient(config) as api_client:
+            messaging_api = MessagingApi(api_client)
+            text_message = TextMessage(text=message)
+            broadcast_request = BroadcastRequest(messages=[text_message])
+            messaging_api.broadcast(broadcast_request)
+    except LineApiException as e:
+        # 無料枠の上限超過（429）は毎月恒常的に発生し、対応もしない方針のため
+        # dev チャンネルへは通知せずログに残すだけにする。
+        # それ以外（トークン失効など）は呼び出し側で dev チャンネルへ通知する。
+        if e.status == 429:
+            logging.info("LINE の月間上限（429）のため配信をスキップしました")
+            return
+        raise
 
 
 def _ping_healthcheck() -> None:
